@@ -1,0 +1,17 @@
+{% extends 'base.html' %}
+{%block css%}
+<link rel="stylesheet" href="../static/objects.css">
+{% endblock %}
+
+{% block content %}
+
+    <div class="container">
+        <h1>{% block title %} Will you be my Valentine? {% endblock %}</h1>
+
+        <div class="options">
+            <button onclick="window.location.href='/cal_option'">Yes</button>
+            <button onclick="">No</button>
+        </div>
+    </div>
+    
+{% endblock %}

@@ -1,0 +1,16 @@
+{% extends 'base.html' %}
+{%block css%}
+<link rel="stylesheet" href="../static/objects.css">
+{% endblock %}
+
+{% block content %}
+
+    <div class="container">
+        <h1>{% block title %} Add to Google Calendar? {% endblock %}</h1>
+        <div class="options">
+            <button onclick="window.location.href='/add_to_calendar'">Add to Google Calendar</button>
+            <button onclick="window.location.href='/finale/no'">Don't add</button>
+        </div>
+    </div>
+    
+{% endblock %}
