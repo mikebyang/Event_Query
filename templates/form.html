@@ -1,0 +1,21 @@
+{% extends 'base.html' %}
+{%block css%}
+{% endblock %}
+
+{% block content %}
+
+    <div class="container">
+        <form action="{{url_for('form_submit')}}" method="post">
+            <label name="calendar_selection">Select a calendar to add to: </label>
+            <select name="calendar_selection">
+                <option disabled selected value> -- select an option -- </option>
+                {% for calendar in dropdown %}
+                    <option value="{{calendar.id}}">{{calendar.name}}</option>
+                {% endfor %}
+            </select>
+            <br><br>
+            <input type="submit" value="Submit">
+        </form>
+    </div>
+    
+{% endblock %}

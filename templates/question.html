@@ -1,14 +1,19 @@
 {% extends 'base.html' %}
 {%block css%}
-<link rel="stylesheet" href="../static/objects.css">
+<style>
+    section {
+        background-image: url("https://external-content.duckduckgo.com/iu/?u=https%3A%2F%2Fgiffiles.alphacoders.com%2F842%2F84258.gif&f=1&nofb=1&ipt=9a4deebb3c48fdbc4c94f16053648dd1e707ee9548fb792a845fda697cb5d807&ipo=images");
+    }
+</style>
 {% endblock %}
 
 {% block content %}
 
-    <div class="container">
-        <h1>{% block title %} Will you be my Valentine? {% endblock %}</h1>
+    <div class="container" >
+        <img src="https://c.tenor.com/4LlPM8Z3e04AAAAC/happy-anniversary-celebration-snoopy-peanuts-charlie-brown.gif" width="500" height="300"/>
+        <h1 style = "background-color: white; border-radius: 0.5rem;">{% block title %} Are you free this Wednesday? {% endblock %}</h1>
 
-        <div class="options">
+        <div class="options" style = "backface-visibility: 0%;">
             <button onclick="window.location.href='/cal_option'">Yes</button>
             <button onclick="">No</button>
         </div>

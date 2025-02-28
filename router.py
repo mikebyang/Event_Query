@@ -7,25 +7,26 @@ from googleapiclient.discovery import build
 import os
 
 from event import Event
-from typedef import SCOPES
+from typedef import SCOPES, DEV, Calendar_Option, DUPLICATE_EVENT, EVENT_ADDED, EVENT_NOT_ADDED
 
 app = Flask(__name__)
 app.secret_key = os.urandom(24)
+calendar_options = []
 
 # site routes
+
 @app.route('/')
 def index():
-    print("present question...")
-    return render_template('question.html')
+    print(f'\t> present question...')
 
-@app.route('/cal_option')
-def cal_option():
-    print("present option to add to calendar...")
-    return render_template('addcalevnt.html')
+    if DEV:
+        return render_template('addcalevnt.html')
+        # return redirect(url_for("form"))
+    return render_template('question.html')
 
 @app.route('/add_to_calendar')
 def add_to_calendar():
-    print("add to calendar...")
+    print(f'\t> add to calendar...')
 
     # user authentication
     flow = InstalledAppFlow.from_client_secrets_file(
@@ -39,11 +40,14 @@ def add_to_calendar():
 
 @app.route('/callback')
 def callback():
-    print("callback function...")
+    print(f'\t> callback function...')
+    print(f'\t> request from server method... {request.method}')
     if request.args.get('state') != session['state']:
-        print("ERROR")
-        print(f"\t> mismatch state values. expected: {session['state']}, got: {request.args.get('state')}")
-        raise Exception("Invalid state")
+        print('ERROR')
+        session_state = session['state']
+        request_state = request.args.get('state')
+        print(f'\t> mismatch state values. expected: {session_state}, got: {request_state}')
+        raise Exception('Invalid state')
     
     flow = InstalledAppFlow.from_client_secrets_file(
         'client_secret.json', SCOPES, state=session['state']
@@ -63,37 +67,92 @@ def callback():
         'scopes': creds.scopes
     }
 
-    print("\t> adding to calendar...")
-
-    #create event details
-    print(f"\t> creating event...")
-    this_year = datetime.now().year
-    start = datetime(this_year, 2, 14, 21, 30)
-    end = start + timedelta(hours=1, minutes=30)
-    day = Event('Valentines Day Dinner Test', '334 8th Ave, New York City, NY 10001-6947', 'America/New_York', start.isoformat(), end.isoformat())
-
-    #TODO check to make sure that event is not already on calendar
+    print(f'\t> creating service instance...')
+    creds = credentials.Credentials(**session['credentials'])
 
     try:
-        print(f"\t> creating service instance...")
-        creds = credentials.Credentials(**session['credentials'])
+        global service
         service = build('calendar', 'v3', credentials=creds)
+        calendar_list = service.calendarList().list(pageToken=None).execute()
+    except Exception as e:
+        print(f'\t> error getting calendars...')
+        print(f'\t> {e}')
+        return
 
-        print(f"\t> adding event to calendar...")
+    for item in calendar_list['items']:
+        print(item)
+        calendar_options.append(Calendar_Option(item['summary'], item['id'], item['backgroundColor']))
+
+    print(calendar_options)
+
+    global single_calendar
+    single_calendar = None
+
+    if len(calendar_options) > 1:
+        return redirect(url_for('form'))
+    
+    single_calendar = calendar_options[0].id
+
+    return redirect(url_for('form_submit'))
+    
+@app.route('/form')
+def form():
+    return render_template('form.html', dropdown = calendar_options)
+
+@app.route('/form_submit', methods = ['POST'])
+def form_submit():
+    print(f'\t> adding to calendar...')
+    
+    global single_calendar
+    
+    if request.method != 'POST' and single_calendar != None:
+        return redirect(url_for('finale', param=EVENT_NOT_ADDED))
+    
+    if single_calendar != None:
+        selection = single_calendar
+    else:
+        selection = request.form['calendar_selection']
+    
+    print(f'\t> ID for calendar: {selection}')
+
+    #create event details
+    print(f'\t> creating event...')
+    this_year = datetime.now().year
+    start = datetime(this_year, 2, 14, 22, 45)
+    end = start + timedelta(hours=1, minutes=30)
+    day = Event('Valentines Day Test', selection, 'COTE Korean Steakhouse, 16 W 22nd St, New York, NY 10010', 'America/New_York', start.isoformat(), end.isoformat())
+    print(day)
+
+    try:
+        global service
+
+        search_time_start = start.isoformat() + 'Z'
+        search_time_end = (end + timedelta(days=1)).isoformat() + 'Z'
+
+        events = service.events().list(calendarId=selection, timeMax = search_time_end, timeMin = search_time_start).execute()
+
+        for event in events['items']:
+            event_name = event['summary']
+            if event_name == day.name:
+                return redirect(url_for('finale', param=DUPLICATE_EVENT))
+
+        print(f'\t> adding event to calendar...')
         day.schedule(service)
     except Exception as e:
-        print("error scheduling event...")
-        print(f"\t> {e}")
-        return render_template('addcalevnt.html')
-
-    return redirect(url_for('finale', param='yes'))
+        print(f'\t> error scheduling event...')
+        print(f'\t> {e}')
+        return redirect(url_for('finale', param=EVENT_NOT_ADDED))
+    return redirect(url_for('finale', param=EVENT_ADDED))
 
 @app.route('/finale/<string:param>')
 def finale(param):
-    print("initiate finale...")
+    print(f'\t> initiate finale...')
     session.clear()
 
-    msg = "Done. Event has been added to your Google Calendar!"
-    if param.lower() == "no":
-        msg = "Nothing else to do then."
-    return render_template('finale.html', msg=msg)
+    global service
+    service.close()
+
+    if param.lower() == 'no':
+        param = EVENT_NOT_ADDED
+
+    return render_template('finale.html', msg=param)
